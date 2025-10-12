@@ -3,9 +3,12 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
-Route::resource('posts', App\Http\Controllers\PostController::class);
+use App\Http\Controllers\PostController;
 
-Route::resource('product', ProductController::class);
+// Route Resource Posts tetap dipertahankan
+Route::resource('posts', PostController::class);
+
+// Route::resource('product', ProductController::class); // BARIS INI DIHAPUS UNTUK MENGHINDARI KONFLIK
 
 Route::get('/hello', function () {
     return "Hello, World!";
@@ -40,11 +43,25 @@ Route::prefix('admin')->group(function () {
     });
 });
 
+// --- ROUTE PRODUCT MANUAL UNTUK MEMASTIKAN NAMA 'product-store' ADA ---
+
+// Rute untuk menampilkan daftar produk (Index)
+Route::get('/product', [ProductController::class, 'index'])->name('product.index');
+
 // Rute untuk menampilkan form 'Create New Product'
 Route::get('/product/create', [ProductController::class, 'create'])->name('product-create');
 
-// Rute untuk menyimpan data yang dikirim dari form
+// Rute untuk menyimpan data yang dikirim dari form (POST)
 Route::post('/product', [ProductController::class, 'store'])->name('product-store');
+
+// Rute untuk Edit dan Delete (tambahan untuk melengkapi CRUD)
+// Asumsi Anda juga butuh ini, menggunakan nama yang konsisten dengan dash
+Route::get('/product/edit/{id}', [ProductController::class, 'edit'])->name('product-edit');
+Route::put('/product/{id}', [ProductController::class, 'update'])->name('product-update');
+Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product-delete');
+
+// --- END ROUTE PRODUCT ---
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');
