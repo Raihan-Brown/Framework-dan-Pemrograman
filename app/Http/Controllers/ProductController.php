@@ -4,19 +4,35 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
-use Illuminate\Http\RedirectResponse; // Tambahkan ini untuk tipografi modern Laravel
-use Illuminate\View\View; // Tambahkan ini untuk tipografi modern Laravel
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $data = Product::all();
-        // Pastikan path view konsisten: Master-Data
-        return view("Master-Data.Product-Master.index-product", compact('data'));
+        // Inisialisasi query builder untuk model Product
+        $query = Product::query();
+
+        // Cek apakah ada input pencarian dari pengguna
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+
+            // Filter produk berdasarkan nama atau informasi produk
+            $query->where(function ($q) use ($search) {
+                $q->where('product_name', 'like', '%' . $search . '%')
+                  ->orWhere('information', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Ambil data produk dengan paginasi dan pertahankan query search saat pagination
+        $data = $query->paginate(5)->appends(['search' => $request->input('search')]);
+
+        // Kirim data ke view (nama view disesuaikan agar konsisten)
+        return view('master-data.product-master.index-product', compact('data'));
     }
 
     /**
@@ -24,8 +40,7 @@ class ProductController extends Controller
      */
     public function create(): View
     {
-        // KESALAHAN DITEMUKAN & DIPERBAIKI: Mengubah 'Master-data' menjadi 'Master-Data'
-        return view("Master-Data.Product-Master.create-product");
+        return view('master-data.product-master.create-product');
     }
 
     /**
@@ -36,44 +51,45 @@ class ProductController extends Controller
         // Validasi input data dari form
         $validatedData = $request->validate([
             'product_name' => 'required|string|max:255',
-            'unit' => 'required|string|max:50',
-            'type' => 'required|string|max:50',
-            'information' => 'nullable|string',
-            'qty' => 'required|integer',
-            'producer' => 'required|string|max:255',
+            'unit'         => 'required|string|max:50',
+            'type'         => 'required|string|max:50',
+            'information'  => 'nullable|string',
+            'qty'          => 'required|integer|min:0',
+            'producer'     => 'required|string|max:255',
         ]);
 
-        // Proses simpan data ke database
+        // Simpan data (pastikan $fillable di model Product sudah diset)
         Product::create($validatedData);
 
         // Redirect kembali ke halaman index produk dengan pesan sukses
-        return redirect()->route('product.index')->with('success', 'Product created successfully!');
+        return redirect()->route('product-index')->with('success', 'Data produk berhasil ditambahkan.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $id): View
     {
-        //
+        $product = Product::findOrFail($id);
+        return view('master-data.product-master.detail-product', compact('product'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(string $id): View
     {
         $product = Product::findOrFail($id);
-        return view('Master-Data.Product-Master.edit-product', compact('product'));
+        return view('master-data.product-master.edit-product', compact('product'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): RedirectResponse
     {
         // Validasi input dari form
-        $request->validate([
+        $validatedData = $request->validate([
             'product_name' => 'required|string|max:255',
             'unit'         => 'required|string|max:255',
             'type'         => 'required|string|max:255',
@@ -85,25 +101,25 @@ class ProductController extends Controller
         // Cari produk berdasarkan ID, jika tidak ditemukan akan error 404
         $product = Product::findOrFail($id);
 
-        // Update data produk dengan data baru
-        $product->update([
-            'product_name' => $request->product_name,
-            'unit'         => $request->unit,
-            'type'         => $request->type,
-            'information'  => $request->information,
-            'qty'          => $request->qty,
-            'producer'     => $request->producer,
-        ]);
+        // Update data produk
+        $product->update($validatedData);
 
         // Redirect kembali dengan pesan sukses
-        return redirect()->back()->with('success', 'Product updated successfully!');
+        return redirect()->back()->with('success', 'Data produk berhasil diupdate.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
-        
+        $product = Product::find($id);
+
+        if ($product) {
+            $product->delete();
+            return redirect()->route('product-index')->with('success', 'Data produk berhasil dihapus.');
+        }
+
+        return redirect()->route('product-index')->with('error', 'Produk tidak ditemukan.');
     }
 }

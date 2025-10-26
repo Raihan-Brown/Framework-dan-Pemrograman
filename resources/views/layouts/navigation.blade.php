@@ -31,7 +31,7 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('product.index')">
+                        <x-dropdown-link :href="route('product-index')">
                             {{ __('Lihat Data Produk') }}
                         </x-dropdown-link>
                         <x-dropdown-link :href="route('product-create')">
@@ -85,7 +85,7 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('product.index')">
+            <x-responsive-nav-link :href="route('product-index')">
                 {{ __('Lihat Data Produk') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('product-create')">

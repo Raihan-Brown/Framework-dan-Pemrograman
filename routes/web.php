@@ -8,8 +8,6 @@ use App\Http\Controllers\PostController;
 // Route Resource Posts tetap dipertahankan
 Route::resource('posts', PostController::class);
 
-// Route::resource('product', ProductController::class); // BARIS INI DIHAPUS UNTUK MENGHINDARI KONFLIK
-
 Route::get('/hello', function () {
     return "Hello, World!";
 });
@@ -43,21 +41,29 @@ Route::prefix('admin')->group(function () {
     });
 });
 
-// --- ROUTE PRODUCT MANUAL UNTUK MEMASTIKAN NAMA 'product-store' ADA ---
+// --- ROUTE PRODUCT MANUAL (CRUD LENGKAP) ---
+// Perbaikan: Menghapus duplikasi rute dan memastikan semua nama rute konsisten
+// (product-index, product-create, product-detail, dll.)
 
-// Rute untuk menampilkan daftar produk (Index)
-Route::get('/product', [ProductController::class, 'index'])->name('product.index');
+// 1. Index (Menampilkan daftar produk)
+Route::get('/product', [ProductController::class, 'index'])->name('product-index');
 
-// Rute untuk menampilkan form 'Create New Product'
+// 2. Create (Form tambah produk)
 Route::get('/product/create', [ProductController::class, 'create'])->name('product-create');
 
-// Rute untuk menyimpan data yang dikirim dari form (POST)
+// 3. Store (Menyimpan data baru)
 Route::post('/product', [ProductController::class, 'store'])->name('product-store');
 
-// Rute untuk Edit dan Delete (tambahan untuk melengkapi CRUD)
-// Asumsi Anda juga butuh ini, menggunakan nama yang konsisten dengan dash
-Route::get('/product/edit/{id}', [ProductController::class, 'edit'])->name('product-edit');
+// 4. Detail (Menampilkan detail satu produk)
+Route::get('/product/{id}', [ProductController::class, 'show'])->name('product-detail');
+
+// 5. Edit (Form edit produk)
+Route::get('/product/{id}/edit', [ProductController::class, 'edit'])->name('product-edit');
+
+// 6. Update (Mengupdate data)
 Route::put('/product/{id}', [ProductController::class, 'update'])->name('product-update');
+
+// 7. Destroy (Menghapus data)
 Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product-delete');
 
 // --- END ROUTE PRODUCT ---
