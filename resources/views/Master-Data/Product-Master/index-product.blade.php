@@ -19,8 +19,9 @@
         {{-- END TAMPILAN PESAN SESSION --}}
 
         <div class="overflow-x-auto shadow-lg sm:rounded-lg">
-            {{-- Tombol Tambah Produk --}}
-            <div class="mb-4">
+            
+            {{-- Tombol Tambah Produk & Export --}}
+            <div class="mb-4 flex items-center space-x-2"> {{-- [MODIFIKASI] Menambahkan class flex --}}
                 <a href="{{ route('product-create') }}">
                     <button class="px-6 py-4 text-white bg-green-500 border
                     border-green-500 rounded-lg shadow-md hover:bg-green-600
@@ -28,6 +29,16 @@
                         Add product data
                     </button>
                 </a>
+
+                {{-- [ BARU ] Tombol Export Excel --}}
+                <a href="{{ route('product-export-excel') }}">
+                    <button class="px-6 py-4 text-white bg-blue-500 border
+                    border-blue-500 rounded-lg shadow-md hover:bg-blue-600
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                        Export to Excel
+                    </button>
+                </a>
+                {{-- [ AKHIR BARU ] --}}
             </div>
 
             {{-- Form Pencarian Produk --}}
@@ -62,13 +73,46 @@
             <table class="min-w-full border border-collapse border-gray-200">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">ID</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Product Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Unit</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Type</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Information</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Qty</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Producer</th>
+                        {{-- Helper function untuk membuat link sorting --}}
+                        @php
+                        function sortableHeader($column, $displayName, $currentSortBy, $currentSortDir) {
+                            $newSortDir = ($currentSortBy == $column && $currentSortDir == 'asc') ? 'desc' : 'asc';
+                            $icon = '';
+                            if ($currentSortBy == $column) {
+                                $icon = ($currentSortDir == 'asc') ? ' &uarr;' : ' &darr;'; // Panah atas atau bawah
+                            }
+                            $url = route('product-index', [
+                                'search' => request('search'), // Pertahankan search query
+                                'sort_by' => $column,
+                                'sort_dir' => $newSortDir,
+                                'page' => request('page') // Pertahankan halaman saat ini jika perlu
+                            ]);
+                            return '<a href="' . $url . '">' . $displayName . $icon . '</a>';
+                        }
+                        @endphp
+
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {{-- ID dibuat 0 agar tidak bentrok dengan $loop->iteration --}}
+                            {!! sortableHeader('id', 'ID', $sortBy, $sortDir) !!}
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('product_name', 'Product Name', $sortBy, $sortDir) !!}
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('unit', 'Unit', $sortBy, $sortDir) !!}
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('type', 'Type', $sortBy, $sortDir) !!}
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('information', 'Information', $sortBy, $sortDir) !!}
+_                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('qty', 'Qty', $sortBy, $sortDir) !!}
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            {!! sortableHeader('producer', 'Producer', $sortBy, $sortDir) !!}
+                        </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Aksi</th>
                     </tr>
                 </thead>
@@ -76,7 +120,8 @@
                     {{-- [ MODIFIKASI ] Ganti @foreach jadi @forelse untuk handle data kosong --}}
                     @forelse ($data as $item)
                         <tr class="bg-white hover:bg-gray-50">
-                            <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $loop->iteration }}</td>
+                            {{-- Menampilkan ID asli dari database --}}
+                            <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $item->id }}</td>
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900 hover:text-blue-500 hover:underline transition duration-150 ease-in-out">
                                 <a href="{{ route('product-detail', $item->id) }}" class="font-medium text-inherit block w-full">
                                     {{ $item->product_name }}
@@ -97,20 +142,22 @@
                     @empty
                         {{-- [ BARU ] Pesan jika data tidak ditemukan --}}
                         <tr>
-                            <td colspan="8" class="px-4 py-6 text-center text-lg text-red-600 font-semibold">
+                            {{-- Colspan disesuaikan jadi 9 karena ada 9 kolom --}}
+                            <td colspan="9" class="px-4 py-6 text-center text-lg text-red-600 font-semibold">
                                 No products found.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
+            {{-- End Tabel Data Produk --}}
 
-            {{-- Pagination --}}
+            {{-- Pagination (pastikan appends sudah benar) --}}
             <div class="mt-4">
-                {{-- Ini penting agar pencarian tetap terbawa saat pindah halaman --}}
-                {{ $data->appends(['search' => request('search')])->links() }}
+                {{ $data->appends(['search' => request('search'), 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
             </div>
             {{-- End Pagination --}}
+
         </div>
     </div>
 

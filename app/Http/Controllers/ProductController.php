@@ -6,33 +6,50 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request): View
     {
-        // Inisialisasi query builder untuk model Product
         $query = Product::query();
+        $search = $request->input('search');
 
-        // Cek apakah ada input pencarian dari pengguna
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-
-            // Filter produk berdasarkan nama atau informasi produk
+        // Logika Pencarian (sudah ada)
+        if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('product_name', 'like', '%' . $search . '%')
-                  ->orWhere('information', 'like', '%' . $search . '%');
+                  ->orWhere('information', 'like', '%' . $search . '%')
+                  // Tambahkan kolom lain jika perlu dicari juga
+                  ->orWhere('unit', 'like', '%' . $search . '%')
+                  ->orWhere('type', 'like', '%' . $search . '%')
+                  ->orWhere('qty', 'like', '%' . $search . '%')
+                  ->orWhere('producer', 'like', '%' . $search . '%');
             });
         }
 
-        // Ambil data produk dengan paginasi dan pertahankan query search saat pagination
-        $data = $query->paginate(5)->appends(['search' => $request->input('search')]);
+        // --- [ BARU ] Logika Sorting ---
+        $sortBy = $request->input('sort_by', 'id'); // Default sort by id
+        $sortDir = $request->input('sort_dir', 'asc'); // Default sort direction ascending
 
-        // Kirim data ke view (nama view disesuaikan agar konsisten)
-        return view('master-data.product-master.index-product', compact('data'));
+        // Daftar kolom yang valid untuk sorting (keamanan)
+        $validSortColumns = ['id', 'product_name', 'unit', 'type', 'information', 'qty', 'producer'];
+
+        if (in_array($sortBy, $validSortColumns) && in_array($sortDir, ['asc', 'desc'])) {
+            $query->orderBy($sortBy, $sortDir);
+        }
+        // --- Akhir [ BARU ] Logika Sorting ---
+
+        // Pagination (sudah ada, tapi pastikan $search, $sortBy, $sortDir ditambahkan ke appends)
+        $data = $query->paginate(5)->appends([
+            'search' => $search,
+            'sort_by' => $sortBy, // Tambahkan ini
+            'sort_dir' => $sortDir   // Tambahkan ini
+        ]);
+
+        // Kirim data ke view (sertakan $sortBy dan $sortDir untuk menandai header aktif)
+        return view('master-data.product-master.index-product', compact('data', 'sortBy', 'sortDir'));
     }
 
     /**
@@ -58,11 +75,21 @@ class ProductController extends Controller
             'producer'     => 'required|string|max:255',
         ]);
 
-        // Simpan data (pastikan $fillable di model Product sudah diset)
-        Product::create($validatedData);
+        // // Simpan data (pastikan $fillable di model Product sudah diset)
+        // Product::create($validatedData);
 
-        // Redirect kembali ke halaman index produk dengan pesan sukses
-        return redirect()->route('product-index')->with('success', 'Data produk berhasil ditambahkan.');
+        // // Redirect kembali ke halaman index produk dengan pesan sukses
+        // return redirect()->route('product-index')->with('success', 'Data produk berhasil ditambahkan.');
+
+        try {
+            Product::create($validatedData);
+            // Jika berhasil, redirect ke index dengan pesan sukses
+            return redirect()->route('product-index')->with('success', 'Produk baru berhasil ditambahkan!'); // 
+    
+        } catch (\Exception $e) {
+            // Jika gagal, kembali ke form sebelumnya dengan pesan error dan input lama
+            return redirect()->back()->with('error', 'Gagal menambahkan produk: ' . $e->getMessage())->withInput(); // 
+        }
     }
 
     /**
@@ -98,14 +125,28 @@ class ProductController extends Controller
             'producer'     => 'required|string|max:255',
         ]);
 
-        // Cari produk berdasarkan ID, jika tidak ditemukan akan error 404
-        $product = Product::findOrFail($id);
+        // // Cari produk berdasarkan ID, jika tidak ditemukan akan error 404
+        // $product = Product::findOrFail($id);
 
-        // Update data produk
-        $product->update($validatedData);
+        // // Update data produk
+        // $product->update($validatedData);
 
-        // Redirect kembali dengan pesan sukses
-        return redirect()->back()->with('success', 'Data produk berhasil diupdate.');
+        // // Redirect kembali dengan pesan sukses
+        // return redirect()->back()->with('success', 'Data produk berhasil diupdate.');
+
+        try {
+            $product = Product::findOrFail($id);
+            $product->update($validatedData);
+    
+            return redirect()->route('product-index')->with('success', 'Data produk berhasil diupdate.'); // [cite: 15, 33]
+    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('product-index')->with('error', 'Produk tidak ditemukan.');
+    
+        } catch (\Exception $e) {
+            // Jika gagal update karena alasan lain
+            return redirect()->back()->with('error', 'Gagal mengupdate produk: ' . $e->getMessage())->withInput(); // 
+        }
     }
 
     /**
@@ -121,5 +162,9 @@ class ProductController extends Controller
         }
 
         return redirect()->route('product-index')->with('error', 'Produk tidak ditemukan.');
+    }
+
+    public function exportExcel () {
+        return Excel::download(new ProductsExport, 'daftar-produk.xlsx');
     }
 }
