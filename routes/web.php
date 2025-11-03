@@ -73,8 +73,11 @@ Route::middleware(['auth', 'verified', 'RoleCheck:admin'])->group(function () {
     // 7. Destroy (Menghapus data)
     Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product-delete');
     
-    // --- ROUTE EXPORT ---
+    // Route Export
     Route::get('/product/export/excel', [ProductController::class, 'exportExcel'])->name('product-export-excel');
+
+    // Route untuk PDF
+    Route::get('/reports/stock-mutation/pdf', [ProductController::class, 'exportStockPdf'])->name('reports.stock-mutation.pdf');
 
 });
 // --- END GROUP AUTH ---

@@ -20,8 +20,8 @@
 
         <div class="overflow-x-auto shadow-lg sm:rounded-lg">
             
-            {{-- Tombol Tambah Produk & Export --}}
-            <div class="mb-4 flex items-center space-x-2"> {{-- [MODIFIKASI] Menambahkan class flex --}}
+            {{-- [EDIT] Tombol Tambah Produk, Export Excel, & Export PDF --}}
+            <div class="mb-4 flex items-center space-x-2">
                 <a href="{{ route('product-create') }}">
                     <button class="px-6 py-4 text-white bg-green-500 border
                     border-green-500 rounded-lg shadow-md hover:bg-green-600
@@ -30,12 +30,21 @@
                     </button>
                 </a>
 
-                {{-- [ BARU ] Tombol Export Excel --}}
+                {{-- Tombol Export Excel (Sudah ada) --}}
                 <a href="{{ route('product-export-excel') }}">
                     <button class="px-6 py-4 text-white bg-blue-500 border
                     border-blue-500 rounded-lg shadow-md hover:bg-blue-600
                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
                         Export to Excel
+                    </button>
+                </a>
+                
+                {{-- [ BARU ] Tombol Export PDF (Laporan Stok) --}}
+                <a href="{{ route('reports.stock-mutation.pdf') }}">
+                    <button class="px-6 py-4 text-white bg-red-500 border
+                    border-red-500 rounded-lg shadow-md hover:bg-red-600
+                    focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                        Export Stock PDF
                     </button>
                 </a>
                 {{-- [ AKHIR BARU ] --}}
@@ -57,7 +66,6 @@
                     Cari
                 </button>
 
-                {{-- [ BARU ] Tombol Reset, muncul jika ada pencarian --}}
                 @if (request('search'))
                     <a
                         href="{{ route('product-index') }}"
@@ -92,7 +100,6 @@
                         @endphp
 
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
-                            {{-- ID dibuat 0 agar tidak bentrok dengan $loop->iteration --}}
                             {!! sortableHeader('id', 'ID', $sortBy, $sortDir) !!}
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
@@ -106,7 +113,7 @@
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
                             {!! sortableHeader('information', 'Information', $sortBy, $sortDir) !!}
-_                        </th>
+                        </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
                             {!! sortableHeader('qty', 'Qty', $sortBy, $sortDir) !!}
                         </th>
@@ -117,10 +124,8 @@ _                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {{-- [ MODIFIKASI ] Ganti @foreach jadi @forelse untuk handle data kosong --}}
                     @forelse ($data as $item)
                         <tr class="bg-white hover:bg-gray-50">
-                            {{-- Menampilkan ID asli dari database --}}
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $item->id }}</td>
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900 hover:text-blue-500 hover:underline transition duration-150 ease-in-out">
                                 <a href="{{ route('product-detail', $item->id) }}" class="font-medium text-inherit block w-full">
@@ -140,9 +145,7 @@ _                        </th>
                             </td>
                         </tr>
                     @empty
-                        {{-- [ BARU ] Pesan jika data tidak ditemukan --}}
                         <tr>
-                            {{-- Colspan disesuaikan jadi 9 karena ada 9 kolom --}}
                             <td colspan="9" class="px-4 py-6 text-center text-lg text-red-600 font-semibold">
                                 No products found.
                             </td>
@@ -152,7 +155,7 @@ _                        </th>
             </table>
             {{-- End Tabel Data Produk --}}
 
-            {{-- Pagination (pastikan appends sudah benar) --}}
+            {{-- Pagination --}}
             <div class="mt-4">
                 {{ $data->appends(['search' => request('search'), 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
             </div>

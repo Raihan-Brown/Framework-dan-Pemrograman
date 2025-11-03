@@ -3,168 +3,147 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Product;
+use App\Models\Product; // Model produkmu
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\ProductsExport;
+use Maatwebsite\Excel\Facades\Excel; // Untuk Excel
+use App\Exports\ProductsExport; // Untuk Excel
+
+// Impor facade PDF
+use Barryvdh\DomPDF\Facade\Pdf; 
+// Impor Carbon untuk tanggal
+use Carbon\Carbon;
 
 class ProductController extends Controller
 {
+
+    /**
+     * Menampilkan semua data produk
+     */
     public function index(Request $request): View
     {
-        $query = Product::query();
         $search = $request->input('search');
+        $sortBy = $request->input('sort_by', 'id');
+        $sortDir = $request->input('sort_dir', 'asc');
 
-        // Logika Pencarian (sudah ada)
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('product_name', 'like', '%' . $search . '%')
-                  ->orWhere('information', 'like', '%' . $search . '%')
-                  // Tambahkan kolom lain jika perlu dicari juga
-                  ->orWhere('unit', 'like', '%' . $search . '%')
-                  ->orWhere('type', 'like', '%' . $search . '%')
-                  ->orWhere('qty', 'like', '%' . $search . '%')
-                  ->orWhere('producer', 'like', '%' . $search . '%');
-            });
-        }
+        $data = Product::query()
+            ->when($search, function ($query, $search) {
+                return $query->where('product_name', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('producer', 'like', "%{$search}%");
+            })
+            ->orderBy($sortBy, $sortDir)
+            ->paginate(10);
 
-        // --- [ BARU ] Logika Sorting ---
-        $sortBy = $request->input('sort_by', 'id'); // Default sort by id
-        $sortDir = $request->input('sort_dir', 'asc'); // Default sort direction ascending
-
-        // Daftar kolom yang valid untuk sorting (keamanan)
-        $validSortColumns = ['id', 'product_name', 'unit', 'type', 'information', 'qty', 'producer'];
-
-        if (in_array($sortBy, $validSortColumns) && in_array($sortDir, ['asc', 'desc'])) {
-            $query->orderBy($sortBy, $sortDir);
-        }
-        // --- Akhir [ BARU ] Logika Sorting ---
-
-        // Pagination (sudah ada, tapi pastikan $search, $sortBy, $sortDir ditambahkan ke appends)
-        $data = $query->paginate(5)->appends([
-            'search' => $search,
-            'sort_by' => $sortBy, // Tambahkan ini
-            'sort_dir' => $sortDir   // Tambahkan ini
-        ]);
-
-        // Kirim data ke view (sertakan $sortBy dan $sortDir untuk menandai header aktif)
-        return view('master-data.product-master.index-product', compact('data', 'sortBy', 'sortDir'));
+        return view('Master-Data.Product-Master.index-product', compact('data', 'search', 'sortBy', 'sortDir'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Menampilkan form untuk membuat produk baru
      */
     public function create(): View
     {
-        return view('master-data.product-master.create-product');
+        return view('Master-Data.Product-Master.create-product');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Menyimpan produk baru ke database
      */
     public function store(Request $request): RedirectResponse
     {
-        // Validasi input data dari form
-        $validatedData = $request->validate([
+        $request->validate([
             'product_name' => 'required|string|max:255',
-            'unit'         => 'required|string|max:50',
-            'type'         => 'required|string|max:50',
-            'information'  => 'nullable|string',
-            'qty'          => 'required|integer|min:0',
-            'producer'     => 'required|string|max:255',
+            'unit' => 'required|string|max:50',
+            'type' => 'required|string|max:50',
+            'information' => 'nullable|string',
+            'qty' => 'required|integer',
+            'producer' => 'nullable|string|max:255',
         ]);
 
-        // // Simpan data (pastikan $fillable di model Product sudah diset)
-        // Product::create($validatedData);
+        Product::create($request->all());
 
-        // // Redirect kembali ke halaman index produk dengan pesan sukses
-        // return redirect()->route('product-index')->with('success', 'Data produk berhasil ditambahkan.');
-
-        try {
-            Product::create($validatedData);
-            // Jika berhasil, redirect ke index dengan pesan sukses
-            return redirect()->route('product-index')->with('success', 'Produk baru berhasil ditambahkan!'); // 
-    
-        } catch (\Exception $e) {
-            // Jika gagal, kembali ke form sebelumnya dengan pesan error dan input lama
-            return redirect()->back()->with('error', 'Gagal menambahkan produk: ' . $e->getMessage())->withInput(); // 
-        }
+        return redirect()->route('product-index')->with('success', 'Produk berhasil ditambahkan.');
     }
 
     /**
-     * Display the specified resource.
+     * Menampilkan detail produk
      */
     public function show(string $id): View
     {
         $product = Product::findOrFail($id);
-        return view('master-data.product-master.detail-product', compact('product'));
+        return view('Master-Data.Product-Master.detail-product', ['product' => $product]);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Menampilkan form untuk edit produk
      */
     public function edit(string $id): View
     {
         $product = Product::findOrFail($id);
-        return view('master-data.product-master.edit-product', compact('product'));
+        return view('Master-Data.Product-Master.edit-product', ['product' => $product]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update produk di database
      */
     public function update(Request $request, string $id): RedirectResponse
     {
-        // Validasi input dari form
-        $validatedData = $request->validate([
+        $request->validate([
             'product_name' => 'required|string|max:255',
-            'unit'         => 'required|string|max:255',
-            'type'         => 'required|string|max:255',
-            'information'  => 'nullable|string',
-            'qty'          => 'required|integer|min:1',
-            'producer'     => 'required|string|max:255',
+            'unit' => 'required|string|max:50',
+            'type' => 'required|string|max:50',
+            'information' => 'nullable|string',
+            'qty' => 'required|integer',
+            'producer' => 'nullable|string|max:255',
         ]);
 
-        // // Cari produk berdasarkan ID, jika tidak ditemukan akan error 404
-        // $product = Product::findOrFail($id);
+        $product = Product::findOrFail($id);
+        $product->update($request->all());
 
-        // // Update data produk
-        // $product->update($validatedData);
-
-        // // Redirect kembali dengan pesan sukses
-        // return redirect()->back()->with('success', 'Data produk berhasil diupdate.');
-
-        try {
-            $product = Product::findOrFail($id);
-            $product->update($validatedData);
-    
-            return redirect()->route('product-index')->with('success', 'Data produk berhasil diupdate.'); // [cite: 15, 33]
-    
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return redirect()->route('product-index')->with('error', 'Produk tidak ditemukan.');
-    
-        } catch (\Exception $e) {
-            // Jika gagal update karena alasan lain
-            return redirect()->back()->with('error', 'Gagal mengupdate produk: ' . $e->getMessage())->withInput(); // 
-        }
+        return redirect()->route('product-index')->with('success', 'Produk berhasil diperbarui.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Hapus produk dari database
      */
     public function destroy(string $id): RedirectResponse
     {
-        $product = Product::find($id);
-
-        if ($product) {
-            $product->delete();
-            return redirect()->route('product-index')->with('success', 'Data produk berhasil dihapus.');
-        }
-
-        return redirect()->route('product-index')->with('error', 'Produk tidak ditemukan.');
+        $product = Product::findOrFail($id);
+        $product->delete();
+        return redirect()->route('product-index')->with('success', 'Produk berhasil dihapus.');
     }
 
-    public function exportExcel () {
+    /**
+     * Handle export to Excel.
+     */
+    public function exportExcel()
+    {
         return Excel::download(new ProductsExport, 'daftar-produk.xlsx');
     }
-}
+
+    /**
+     * Handle export Laporan Mutasi Stok ke PDF.
+     */
+    public function exportStockPdf()
+    {
+        // 1. Ambil SEMUA data produk dari database
+        $products = Product::all();
+
+        // 2. Siapkan data yang mau dikirim ke 'cetakan' PDF
+        $data = [
+            'startDate' => Carbon::parse('2021-10-01')->format('d/m/Y'),
+            'endDate'   => Carbon::parse('2021-11-22')->format('d/m/Y'),
+            'products'  => $products  // Kirim data object $products
+        ];
+        
+        // 3. Panggil "cetakan" PDF (stock_mutation.blade.php) dan kirim datanya
+        $pdf = Pdf::loadView('reports.stock_mutation', $data);
+
+        // 4. Atur ukuran kertas & orientasi
+        $pdf->setPaper('a4', 'landscape');
+
+        // 5. Kirim sebagai file download ke browser
+        return $pdf->download('rekap-mutasi-stock.pdf');
+    }
+
+} 
