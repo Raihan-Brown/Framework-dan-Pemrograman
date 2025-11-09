@@ -120,6 +120,11 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
                             {!! sortableHeader('producer', 'Producer', $sortBy, $sortDir) !!}
                         </th>
+                        {{-- [BARU] Header Kolom Supplier --}}
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">
+                            Supplier
+                        </th>
+                        {{-- [AKHIR BARU] --}}
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border border-gray-200">Aksi</th>
                     </tr>
                 </thead>
@@ -137,6 +142,13 @@
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $item->information }}</td>
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $item->qty }}</td>
                             <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">{{ $item->producer }}</td>
+                            
+                            {{-- [BARU] Tampilkan Nama Supplier --}}
+                            <td class="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                                {{ $item->supplier->name ?? '(N/A)' }}
+                            </td>
+                            {{-- [AKHIR BARU] --}}
+                            
                             <td class="px-4 py-2 border border-gray-200 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ route('product-edit', $item->id) }}" class="text-blue-600 hover:text-blue-800 mr-2">Edit</a>
                                 <button class="text-red-600 hover:text-red-800" onclick="confirmDelete('{{ route('product-delete', $item->id) }}')">
@@ -146,7 +158,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-6 text-center text-lg text-red-600 font-semibold">
+                            {{-- [MODIFIKASI] Colspan diubah dari 9 menjadi 10 --}}
+                            <td colspan="10" class="px-4 py-6 text-center text-lg text-red-600 font-semibold">
                                 No products found.
                             </td>
                         </tr>

@@ -27,6 +27,7 @@ class ProductController extends Controller
         $sortDir = $request->input('sort_dir', 'asc');
 
         $data = Product::query()
+            ->with('supplier')
             ->when($search, function ($query, $search) {
                 return $query->where('product_name', 'like', "%{$search}%")
                     ->orWhere('type', 'like', "%{$search}%")
@@ -35,7 +36,7 @@ class ProductController extends Controller
             ->orderBy($sortBy, $sortDir)
             ->paginate(10);
 
-        return view('Master-Data.Product-Master.index-product', compact('data', 'search', 'sortBy', 'sortDir'));
+            return view('Master-Data.Product-Master.index-product', compact('data', 'search', 'sortBy', 'sortDir'));
     }
 
     /**
