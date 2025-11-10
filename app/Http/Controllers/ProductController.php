@@ -13,6 +13,7 @@ use App\Exports\ProductsExport; // Untuk Excel
 use Barryvdh\DomPDF\Facade\Pdf; 
 // Impor Carbon untuk tanggal
 use Carbon\Carbon;
+use App\Models\Supplier;
 
 class ProductController extends Controller
 {
@@ -44,7 +45,8 @@ class ProductController extends Controller
      */
     public function create(): View
     {
-        return view('Master-Data.Product-Master.create-product');
+        $suppliers = Supplier::all();
+        return view('Master-Data.Product-Master.create-product', compact('suppliers'));
     }
 
     /**
@@ -59,6 +61,7 @@ class ProductController extends Controller
             'information' => 'nullable|string',
             'qty' => 'required|integer',
             'producer' => 'nullable|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
         Product::create($request->all());

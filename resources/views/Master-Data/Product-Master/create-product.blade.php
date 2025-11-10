@@ -54,6 +54,31 @@
                                 <input type="text" id="producer" name="producer" class="block w-full p-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
                             </div>
 
+                            <div class="mb-4">
+                                <label for="supplier_id" class="block text-sm font-medium text-gray-700">Supplier</label>
+                                <select 
+                                    name="supplier_id" 
+                                    id="supplier_id" 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                >
+                                    <option value="">-- Pilih Supplier --</option>
+                                    
+                                    @foreach ($suppliers as $supplier)
+                                        <option 
+                                            value="{{ $supplier->id }}"
+                                            {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}
+                                        >
+                                            {{ $supplier->name }}
+                                        </option>
+                                    @endforeach
+
+                                </select>
+                                {{-- Menampilkan error validasi Laravel --}}
+                                @error('supplier_id')
+                                    <p class="text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                             <button type="submit" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                 Submit
                             </button>
